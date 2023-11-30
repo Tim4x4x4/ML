@@ -7,11 +7,12 @@ def read_json_files(folder_path, stop_point):
     stop = 0
     Date = []
     for root, dirs, files in os.walk(folder_path):
+        Position = []
+        #print(str(root)[-8:])
         for file in files:
             Time = []
             if stop == stop_point:
                 break
-            #print(file)
             if file.endswith('.json'):
                 file_path = os.path.join(root, file)
                 with open(file_path, 'r', encoding='utf-8') as json_file:
@@ -23,9 +24,10 @@ def read_json_files(folder_path, stop_point):
                             entry = {'time': time, 'total': value["tot"], 'current' : value["sbi"], 'can_park' : value["bemp"], 'open' : value["act"]}
                         Time.append(entry)
             stop += 1
-            Date.append({str(file)[:9]: Time})
+            Position.append({str(file)[:9]: Time})
+        Date.append({str(root)[-8:]:Position})    
     return Date
 
 # Call the function and assign the result to my_list
-my_list = read_json_files(folder_path, 2)
+my_list = read_json_files(folder_path, 1)
 print(my_list)
