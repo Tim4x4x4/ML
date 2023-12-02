@@ -19,7 +19,7 @@ import xgboost as xgb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-folder_path = r'C:\Users\Tim Chen\OneDrive\桌面\台大\台大機器學習\機器學習專案\html.2023.final.data\release'
+folder_path = r'C:\Users\Tim Chen\OneDrive\桌面\台大\台大機器學習\html.2023.final.data\release'
 rain_path = 'C:/Users/Tim Chen/OneDrive/桌面/台大/台大機器學習/機器學習專案/extend_X_feature/weather/If_rain.xlsx'
 holiday_path = 'C:/Users/Tim Chen/OneDrive/桌面/台大/台大機器學習/機器學習專案/extend_X_feature/holiday/If_holiday.xlsx'
 
@@ -135,5 +135,3 @@ for stop in new_data:#這裡stop指的是車站名稱
     print(smallest_error)
            
 print("Done")
-
-
