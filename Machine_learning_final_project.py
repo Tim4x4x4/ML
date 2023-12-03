@@ -19,7 +19,12 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 folder_path = r'C:\Users\Tim Chen\OneDrive\桌面\台大\台大機器學習\html.2023.final.data\release'
 rain_path = 'C:/Users/Tim Chen/OneDrive/桌面/台大/台大機器學習/機器學習專案/extend_X_feature/weather/If_rain.xlsx'
 holiday_path = 'C:/Users/Tim Chen/OneDrive/桌面/台大/台大機器學習/機器學習專案/extend_X_feature/holiday/If_holiday.xlsx'
+all_the_stops_path = 'C:/Users/Tim Chen/OneDrive/桌面/台大/台大機器學習/html.2023.final.data/demographic.json'
 
+with open(all_the_stops_path, 'r', encoding='utf-8') as json_file:
+    parsed_data = json.load(json_file)
+    all_the_stops = list(parsed_data.keys())
+    
 def read_feature(feature_path, feature_name):#讀取feature資料，資料我自己編製的excel檔案
     df = pd.read_excel(feature_path)
     df_dict = {}
@@ -29,28 +34,20 @@ def read_feature(feature_path, feature_name):#讀取feature資料，資料我自
         df_dict[str(key)] = value
     return df_dict
 
-def read_json_files(folder_path, start_point, stop_point, rain_data, holiday_data):#讀老師給的檔案，怎麼讀的不太重要，因為要看資料的邏輯，所以知道是讀資料就好
+def read_json_files(folder_path, specific_bike_stop, rain_data, holiday_data):#讀老師給的檔案，怎麼讀的不太重要，因為要看資料的邏輯，所以知道是讀資料就好
     Date = []#注意參數stop_point我指的是讀幾個車站的意思，你要輸出五個車站就打五
     Data = []#rain_data跟holiday_data都是我目前先用很硬幹的方法輸入這個function，你可以參考我的feature然後做一個feature的excel檔案給我，我明天讀
-    Bike_stops = []
-    start_point -= 1
-    if start_point < 0:
-        print("start_point can't be negative or 0")
-        return [], [], []
+
+    
     for root, dirs, files in os.walk(folder_path):
         
         if str(root)[-8:][0] != '2':
             continue
-        temp_start_point = start_point
-        stop = 0
+        
         for file in files:
-            if temp_start_point != 0:
-                temp_start_point -= 1
-                continue
-            if stop == stop_point:
-                break
             #print(str(file))
-            if file.endswith('.json'):
+            if file.endswith('.json') and str(file)[:9] == specific_bike_stop:
+                #print(f'{str(root)[-8:]} :yes')
                 file_path = os.path.join(root, file)
   
                 with open(file_path, 'r', encoding='utf-8') as json_file:
@@ -70,14 +67,9 @@ def read_json_files(folder_path, start_point, stop_point, rain_data, holiday_dat
                                 'holiday': holiday_data[f'{str(root)[-8:]}']
                             }
                             Data.append(entry)
-                            
-                            if str(file)[:9] not in Bike_stops:
-                                Bike_stops.append(str(file)[:9])
-            stop += 1
-        
         Date.append({str(root)[-8:]})
     
-    return Data, Date, Bike_stops
+    return Data, Date, 
 
 def time_to_minutes(time_str):#時間是str不能丟train，我改成用總分鐘數，他就會遞增然後是int
     hour, minute = map(int, time_str.split(':'))
@@ -92,7 +84,6 @@ def err(y_test, y_pred, total_stop):#老師講義的error function，照打而�
     sum /= y_test.size
     return sum
 
-stop_point = 0
 best_models = {}
 
 def trainModels(new_data, best_models):
@@ -131,20 +122,54 @@ def trainModels(new_data, best_models):
         best_models[str(stop)] = best_model
         print(smallest_error)
 
-def transformData(data, bike_stops):
+def transformData(data, specific_bike_stop):
     new_data = {}
-    for stops in bike_stops:#這裡只是需要車站的名字我存起來而已
-        new_data[stops] = []
+    new_data[specific_bike_stop] = []
 
     for elem in data:#原先資料讀進來是某日->車站->data, 我改成車站->某日->data。簡單來說，是要讓每個車站都有一個model，資料要長這樣比較好讀
         bike_stop = elem.get('bike_stop')
-        if bike_stop is not None:
+        if bike_stop == specific_bike_stop:
             new_data[bike_stop].append(elem)
     return new_data
 
 rain_data = read_feature(rain_path, "rain_hour")
 holiday_data = read_feature(holiday_path, "holiday")
-for i in range(1, 1317):
-    data, date, bike_stops = read_json_files(folder_path, i, i, rain_data, holiday_data)
-    new_data = transformData(data, bike_stops)
+for specific_bike_stop in all_the_stops:
+    data, date = read_json_files(folder_path, specific_bike_stop, rain_data, holiday_data)
+    new_data = transformData(data, specific_bike_stop)
     trainModels(new_data, best_models)
+
+def find_total_stops(specific_bike_stop):
+    data, date = read_json_files(folder_path, specific_bike_stop, rain_data, holiday_data)
+    new_data = transformData(data, specific_bike_stop)
+    return new_data[specific_bike_stop][1]['total']
+
+import csv
+predict_path = 'C:/Users/Tim Chen/OneDrive/桌面/台大/台大機器學習/html.2023.final.data/sample_submission_stage1.csv'
+df = pd.read_csv(predict_path)
+predict_time = df['id'].tolist()
+
+weather_forecast_path = 'C:/Users/Tim Chen/OneDrive/桌面/台大/台大機器學習/機器學習專案/extend_X_feature/predict_date_rain_hour/predict_rain_hour.xlsx'
+pred_rain = read_feature(weather_forecast_path, "rain_hour")
+the_holiday = read_feature(weather_forecast_path, "holiday")
+
+my_prediction = []
+timer = 0
+
+for elem in predict_time:
+    timer += 1
+    x_to_pred = []
+    future_date = elem[:8]
+    stop_to_predict = elem[9:18]
+    time_to_predict = time_to_minutes(elem[19:])
+        
+    rain_hour = pred_rain[future_date]
+    holiday = the_holiday[future_date]
+    
+    x_to_pred.append([time_to_predict, find_total_stops(stop_to_predict), 1, rain_hour, holiday])
+    y_pred = best_models[stop_to_predict].predict(x_to_pred)
+    my_prediction.append(y_pred)
+    
+    if timer == 72:
+        timer = 0
+        print(f'{stop_to_predict}, {future_date}')
