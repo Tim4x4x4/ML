@@ -34,7 +34,6 @@ def read_json_files(folder_path, start_point, stop_point, rain_data, holiday_dat
     Data = []#rain_data跟holiday_data都是我目前先用很硬幹的方法輸入這個function，你可以參考我的feature然後做一個feature的excel檔案給我，我明天讀
     Bike_stops = []
     start_point -= 1
-    stop_point -= 1
     if start_point < 0:
         print("start_point can't be negative or 0")
         return [], [], []
@@ -145,8 +144,7 @@ def transformData(data, bike_stops):
 
 rain_data = read_feature(rain_path, "rain_hour")
 holiday_data = read_feature(holiday_path, "holiday")
-for i in range(1, 1300):
-    data, date, bike_stops = read_json_files(folder_path, i, i+100, rain_data, holiday_data)
+for i in range(1, 1317):
+    data, date, bike_stops = read_json_files(folder_path, i, i, rain_data, holiday_data)
     new_data = transformData(data, bike_stops)
-    i += 100
     trainModels(new_data, best_models)
